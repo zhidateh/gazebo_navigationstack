@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="path_341U" type="range_detect_node" name="range_detect_node" output="screen"
+        launch-prefix="gnome-terminal --command"/>
+    <node pkg="path_341U" type="path_plan_node" name="path_plan_node" output="screen"
+        launch-prefix="gnome-terminal --command"/>
+    <node pkg="path_341U" type="bot_control_node" name="bot_control_node" output="screen"/>
+    <rosparam command="load" file="$(find path_341U)/config/config.yaml"/>
+
+</launch>
