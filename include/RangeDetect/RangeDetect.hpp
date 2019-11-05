@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
-#include <std_msgs/Float32.h> 
+#include <std_msgs/Float32MultiArray.h> 
 #include <std_msgs/Int16MultiArray.h>
 #include <nav_msgs/Odometry.h>
 #include <iostream>
@@ -32,7 +32,7 @@ private:
   double ang_z_;
   double pos_x_, pos_y_;
   
-  // for /x_wall
+  // for /x_wall and /y_wall
   //x-direction and y-direction wall matrix, 0 is open, 1 is wall
   imat x_wall; 
   imat y_wall; 

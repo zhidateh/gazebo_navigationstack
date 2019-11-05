@@ -15,18 +15,12 @@ PathPlan::PathPlan(ros::NodeHandle& nh)
   x_wall_sub_  = nh_.subscribe("/x_wall_pub", 1, &PathPlan::xwallCallback, this);
   y_wall_sub_  = nh_.subscribe("/y_wall_pub", 1, &PathPlan::ywallCallback, this);
 
-  control_pub_ = nh_.advertise<geometry_msgs::Point>("/pathplan/control", 1);
   target_pub_ = nh_.advertise<geometry_msgs::Point>("/pathplan/target", 1);
   curr_pub_ = nh_.advertise<geometry_msgs::Point>("/pathplan/curr", 1);
   
-  //initialise target attribute
-  target_x = 0;
-  target_y = 0;
-  target_hdg = 0;
 
   goal_reached_ = GOAL_NOT_REACH;
   
-  //initialise x wall and y wall as open space
   x_wall.zeros(GRID_SIZE+1, GRID_SIZE); 
   y_wall.zeros(GRID_SIZE, GRID_SIZE+1);
 
@@ -70,20 +64,11 @@ void PathPlan::odomCallback(const nav_msgs::OdometryConstPtr& odomMsg)
   if( rx.size()>1 && !goal_reached_){
     reverse(rx.begin(), rx.end());
     reverse(ry.begin(), ry.end());
-    splinePath = CubicSpline::calcSplinePath(rx,ry,0.05);
+    splinePath = CubicSpline::calcSplinePath(rx,ry,0.2);
     calcTargetIndex();
-
-    //target attribute
-    target_x    = splinePath.rx.at(tgt_idx);
-    target_y    = splinePath.ry.at(tgt_idx);
-    target_hdg  = splinePath.ryaw.at(tgt_idx);
-
-    //target command for botcontrol node
     tgt_dist = sqrt(pow(splinePath.rx.at(tgt_idx) - pos_x_,2) + pow(splinePath.ry.at(tgt_idx) - pos_y_,2));
     tgt_steer = normalizeAngle(splinePath.ryaw.at(tgt_idx) - ang_z_);
 
-
-    //for printing only
     ROS_INFO("--------A* Global Path--------");
     for(int i =0; i < rx.size() ;++i){
       ROS_INFO("X: %.2f, Y: %.2f", rx.at(i), ry.at(i));
@@ -100,22 +85,11 @@ void PathPlan::odomCallback(const nav_msgs::OdometryConstPtr& odomMsg)
     ROS_INFO("Error  |front: %.2f, turn:%.2f", tgt_dist, tgt_steer);
   }
   else {
-
-
-    //No more cubic spline path, use the last A* node as goal position
     ROS_INFO("---------Last approach----------");
 
-    //target attribute
-    target_x    = GOAL_X+map_shift;
-    target_y    = GOAL_X+map_shift;
-    target_hdg  = atan2( (GOAL_Y+map_shift) - pos_y_ ,  (GOAL_X+map_shift) - pos_x_);
-
-    //target command for botcontrol node
     tgt_dist = sqrt ( pow(pos_x_ - (GOAL_X+map_shift),2)+ pow(pos_y_ - (GOAL_Y+map_shift),2));
     tgt_steer = normalizeAngle(atan2( (GOAL_Y+map_shift) - pos_y_ ,  (GOAL_X+map_shift) - pos_x_) - ang_z_  );
     
-
-    //for printing only
     ROS_INFO("------------------------------");
     ROS_INFO("Target |X:%.2f,Y:%.2f,HDG:- ", GOAL_X+map_shift, GOAL_Y+map_shift);
     ROS_INFO("Robot  |X:%.2f,Y:%.2f,HDG:%.2f", pos_x_, pos_y_, ang_z_);
@@ -125,11 +99,6 @@ void PathPlan::odomCallback(const nav_msgs::OdometryConstPtr& odomMsg)
     if( fabs(pos_x_ - (GOAL_X+map_shift)) < goal_dist 
         && fabs(pos_y_ - (GOAL_Y+map_shift)) < goal_dist ){
       goal_reached_ = GOAL_REACH;
-      
-      target_x    = 0;
-      target_y    = 0;
-      target_hdg  = 0;
-      
       tgt_dist = 0.0;
       tgt_steer = 0.0;
       ROS_INFO("****************************");
@@ -139,44 +108,35 @@ void PathPlan::odomCallback(const nav_msgs::OdometryConstPtr& odomMsg)
     }
   }
 
-  //near wall, trigger recovery behaviour
   if( nearWall() && rB_phase == 0) rB_phase = 1; 
   if(rB_phase != 0 ) recoveryBehaviour();
 
-  //difference in heading is too much, make it rotate on the spot
-  if(abs(tgt_steer) > PI/2) tgt_dist =0;
 
 
-  geometry_msgs::Point control_cmd;
+
   geometry_msgs::Point target_point;
   geometry_msgs::Point curr_position;
   
-  control_cmd.x = tgt_dist;
-  control_cmd.y = tgt_steer;
-  control_cmd.z = goal_reached_;
+  target_point.x = tgt_dist;//target_x_;
+  target_point.y = tgt_steer;//target_y_;
+  target_point.z = goal_reached_;
   
-
-  //for plotting 
-  target_point.x = target_x;
-  target_point.y = target_y;
-  target_point.z = target_hdg*180/PI;
-
   curr_position.x = pos_x_;
   curr_position.y = pos_y_;
   curr_position.z = ang_z_*180/PI; //in degree
   
 
-  control_pub_.publish<geometry_msgs::Point>(control_cmd);
+
   target_pub_.publish<geometry_msgs::Point>(target_point);
   curr_pub_.publish<geometry_msgs::Point>(curr_position);
   
 }
 
 
-void PathPlan::rangeCallback(const std_msgs::Float32MultiArray& rangeMsg)
+void PathPlan::rangeCallback(const std_msgs::Float32& rangeMsg)
 {
-  min_ob_dist = rangeMsg.data[0];
-  min_ob_ang = rangeMsg.data[1];
+  min_ob_dist = rangeMsg.data;
+
 }
 
 void PathPlan::xwallCallback(const std_msgs::Int16MultiArray& xwallMsg)
@@ -390,62 +350,66 @@ void PathPlan::recoveryBehaviour()
   double min_dist = 9999;
   int nearest_idx = -1;
   //look for nearest nodes.
-  for(int i =0; i < rx.size();++i){
-  double d = sqrt( pow(pos_x_  - rx.at(i),2) +
-                      pow(pos_y_ - ry.at(i),2));
+  for(int i =0; i < splinePath.rx.size();++i){
+   double d = sqrt( pow(pos_x_  - splinePath.rx.at(i),2) +
+                      pow(pos_y_  - splinePath.ry.at(i),2));
     if (d < min_dist) {
       min_dist = d;
       nearest_idx = i;
     }
   }
 
+
   switch(rB_phase){
     case 1:
-
-
       ROS_INFO("\t Phase 1");
-
-      //obstacle infront of robot
-      if(abs(min_ob_ang) < PI/2){ 
-        //reverse slowly
-        tgt_dist =  - 0.05;
-        tgt_steer = -0.1*normalizeAngle(atan2( ry.at(nearest_idx) - pos_y_, rx.at(nearest_idx) -  pos_x_) - ang_z_);
+  
+      //adjust heading to face the nearest node
+      // tgt_dist = 0.0;
+      // if(min_ob_dist < 0.23) tgt_dist=-0.05;
+      // tgt_steer = normalizeAngle(atan2( ry.at(nearest_idx) - pos_y_, rx.at(nearest_idx) -  pos_x_) - ang_z_);
       
-      }
-      else{  //obstacle behind of robot
-        //forward slowly
-        tgt_dist =  0.05;
-        tgt_steer = 0.1*normalizeAngle(atan2( ry.at(nearest_idx) - pos_y_, rx.at(nearest_idx) -  pos_x_) - ang_z_);
-      }
 
-      //away from obstacle, move to next phase
-      if( abs(min_dist) < 0.3 || min_ob_dist >0.3 ) rB_phase = 2;
- 
+
+
+      //move to the nearest node
+      tgt_dist =  -sqrt( pow(pos_x_  - rx.at(nearest_idx),2) +
+                      pow(pos_y_  - ry.at(nearest_idx),2));;
+      tgt_steer = -normalizeAngle(atan2( ry.at(nearest_idx) - pos_y_, rx.at(nearest_idx) -  pos_x_) - ang_z_);
+
+      if(abs(tgt_dist) > 0.4) rB_phase = 0;
+      
+
+
+      //if heading is the same, change to phase 2
+      // if(abs(tgt_steer) < 0.05){
+      //   rB_phase =2;
+      // }
       break;
 
     case 2:
       
       ROS_INFO("\t Phase 2");
 
-      //align heading with target heading on the spot
-      tgt_dist  = 0.00;
-      tgt_steer = normalizeAngle(splinePath.ryaw.at(tgt_idx) - ang_z_);
+      //move to the nearest node
+      tgt_dist =  sqrt( pow(pos_x_  - rx.at(nearest_idx),2) +
+                      pow(pos_y_  - ry.at(nearest_idx),2));;
+      tgt_steer = 0;
 
+      if(tgt_dist > la_dist) tgt_dist = la_dist;
 
-      //tgt_steer = 0.1*normalizeAngle(atan2( ry.at(nearest_idx) - pos_y_, rx.at(nearest_idx) -  pos_x_) - ang_z_);
-
-      //if heading aligned, recoverybehaviour is over.
-      if(abs(tgt_steer) < 0.03) rB_phase = 0;
+      //if the distance to nearest index is minimum, change to phase 3
+      if (tgt_dist < 0.2) rB_phase = 0;
       break;
 
     default:
       return;
   }
 
-  //for printing only
   ROS_INFO("Target coordinate: X:%.2f, Y:%.2f", rx.at(nearest_idx),ry.at(nearest_idx));
-  ROS_INFO("error distance: %.2f", tgt_dist);
-  ROS_INFO("error heading: %.2f", tgt_steer);
+  ROS_INFO("intend heading: %.2f", tgt_steer);
+  ROS_INFO("error heading: %.2f", abs(tgt_steer));
+  ROS_INFO("intend distance: %.2f", tgt_dist);
 
 }
 
