@@ -71,10 +71,10 @@ void RangeDetect::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scanMsg)
 
   }
 /////// Green grid is unreachable, set wall around it ///////
-  x_wall(3,4) = 1;
-  x_wall(4,4) = 1;
-  y_wall(3,4) = 1;
-  y_wall(3,5) = 1;
+  // x_wall(3,4) = 1;
+  // x_wall(4,4) = 1;
+  // y_wall(3,4) = 1;
+  // y_wall(3,5) = 1;
 
 /////////////////COLLISION CHECKING FOR RECOVERY BEHAVIOUR/////////////////
   scan_data_ = scanMsg->ranges;

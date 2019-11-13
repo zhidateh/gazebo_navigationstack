@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(path_341U)
+project(gazebo_nav_stack)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -106,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES path_341U
+#  LIBRARIES nav_stack
   CATKIN_DEPENDS roscpp sensor_msgs nav_msgs geometry_msgs std_msgs
 #  DEPENDS system_lib
 )
@@ -124,7 +124,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/path_341U.cpp
+#   src/${PROJECT_NAME}/nav_stack.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -135,9 +135,9 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(range_detect_node src/range_detect_node.cpp src/RangeDetect.cpp)
-add_executable(path_plan_node src/path_plan_node.cpp src/PathPlan.cpp src/CubicSpline.cpp)
-add_executable(bot_control_node src/bot_control_node.cpp src/BotControl.cpp)
+add_executable(${PROJECT_NAME}_range_detect_node src/range_detect_node.cpp src/RangeDetect.cpp)
+add_executable(${PROJECT_NAME}_path_plan_node src/path_plan_node.cpp src/PathPlan.cpp src/CubicSpline.cpp)
+add_executable(${PROJECT_NAME}_bot_control_node src/bot_control_node.cpp src/BotControl.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -150,16 +150,16 @@ add_executable(bot_control_node src/bot_control_node.cpp src/BotControl.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(range_detect_node
+target_link_libraries(${PROJECT_NAME}_range_detect_node
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(path_plan_node
+target_link_libraries(${PROJECT_NAME}_path_plan_node
   armadillo
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(bot_control_node
+target_link_libraries(${PROJECT_NAME}_bot_control_node
   ${catkin_LIBRARIES}
 )
 
@@ -212,7 +212,7 @@ target_link_libraries(bot_control_node
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_path_341U.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_nav_stack.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

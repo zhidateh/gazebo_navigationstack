@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="path_341U" type="range_detect_node" name="range_detect_node" output="screen"
+    <node pkg="gazebo_nav_stack" type="gazebo_nav_stack_range_detect_node" name="range_detect_node" output="screen"
     launch-prefix="gnome-terminal --command"/>
 </launch>

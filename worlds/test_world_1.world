@@ -407,10 +407,10 @@
         </link>
       </model>
       <model name='box_goal'>
-        <pose frame=''>3.5 4.5 -0.04900 0 -0 0</pose>
+        <pose frame=''>5.5 4.5 -0.0800 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>3.5 4.5 -0.04900 0 -0 0</pose>
+          <pose frame=''>5.5 4.5 -0.0800 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>-1e-06 -1e-06 0 2.2e-05 -2.2e-05 0</acceleration>
           <wrench>-1e-06 -1e-06 0 0 -0 0</wrench>

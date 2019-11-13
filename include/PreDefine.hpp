@@ -6,8 +6,8 @@
 #define dt 0.05
 #define MAX_ANGLE_DEVIATION 8 //in degree
 #define GRID_SIZE 9
-#define GOAL_X 3 //target position
-#define GOAL_Y 3 //target position
+#define GOAL_X 8 //target position
+#define GOAL_Y 1 //target position
 #define WALL_DETECT_DIST 1.0
 #define OPEN_DETECT_DIST 1.5
 #define MIN_X 0.0
