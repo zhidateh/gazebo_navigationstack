@@ -54,6 +54,7 @@ No| ROS Topic          |  Description                           |
 
 
 ![print out 2](./assets/pp_po2.png)
+
 *Fig 6: Indication of telebot reaching the goal position*
 
 ## Dependencies
